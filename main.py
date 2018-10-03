@@ -20,19 +20,20 @@ import numpy as np
 def ReadInput(inputFile):
     numVariables    = int(inputFile.readline())
     numRestrictions = int(inputFile.readline())
-    # print(numVariables, numRestrictions)
+    print(numVariables, numRestrictions)
 
-    varCont = numVariables
+    nonNegativity = inputFile.readline().split()
 
-    for i in range(varCont):
-        isNonNegative = inputFile.read()
-        print("oe",isNonNegative)
+    for i in nonNegativity:
+        isNonNegative = int(i)
         if isNonNegative:
             print("É um, então tudo bem!")
         else:
-            print("É zero, adicione 1 var de folga!")
+            print("É zero, substituir por x^+ - x^- (uma variavel a mais)!")
             numVariables += 1
-            print("oe",isNonNegative)
+    
+    
+    print(nonNegativity)
 
 def main():
     inputFile = open(argv[1])
