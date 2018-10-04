@@ -15,19 +15,22 @@
 # // incluir certificados no arquivo de saída.
 
 from sys import argv
+from fractions import Fraction
 import numpy as np
+
 
 def printa_cOiSaS(numVariables, numRestrictions, nonNegativity, objFunction, restrictions):
     print("==========================================")
     print("numVar:", numVariables, "numRestr:", numRestrictions)
     print("Variáveis com restrição de nao-neg:", nonNegativity)
     print("[ ", end="")
-    for i in range(len(objFunction)): print("%3d" % objFunction[i], ",", sep="", end="")
+    for i in range(len(objFunction)): print("%2d" % objFunction[i].numerator, '/', objFunction[i].denominator, ", ", sep="", end="")
     print(" ] <- C")
     for i in range(len(restrictions)):
         print("[ ", end="")
         for j in range(len(restrictions[i])):
-            print("%3d" % restrictions[i][j], ",", sep="", end="")
+            #print("%3.1f" % restrictions[i][j], ",", sep="", end="")
+            print("%2d" % restrictions[i][j].numerator, '/', restrictions[i][j].denominator, ', ', sep="", end="")
         print(" ] <- (A|b)")
     print("==========================================")
 
@@ -39,7 +42,6 @@ def AddZeros(restrictions, numVariables, i, objFunction):
             restrictions[j].insert(numVariables-1, 0)
     
 
-
 def ReadInput(inputFile):
     # Lê o conteúdo do arquivo
     numVariables    = int(inputFile.readline())
@@ -49,7 +51,7 @@ def ReadInput(inputFile):
     objFunction   = inputFile.readline().split()
 
     # Converte em uma lista de inteiros
-    objFunction = list(map(int, objFunction))
+    objFunction = list(map(float, objFunction))
 
     restrictions = [0] * numRestrictions
 
@@ -82,13 +84,20 @@ def ReadInput(inputFile):
             AddZeros(restrictions, numVariables, i, objFunction)
         elif restrictions[i][numVariables] == '==':
             restrictions[i].remove('==')
-        # if j == '==':
 
     # Converte em uma lista de inteiros
     for i in range(len(restrictions)):
-        restrictions[i] = list(map(int, restrictions[i]))
+        restrictions[i] = list(map(float, restrictions[i]))
+        restrictions[i] = [Fraction(x) for x in restrictions[i]]
 
+    objFunction = [Fraction(x) for x in objFunction]
     printa_cOiSaS(numVariables, numRestrictions, nonNegativity, objFunction, restrictions)
+
+    
+
+    teste = np.matrix(restrictions)
+    teste.reshape(numVariables+1, numRestrictions)
+    print(teste)
     
 
 def main():
