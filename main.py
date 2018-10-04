@@ -17,6 +17,28 @@
 from sys import argv
 import numpy as np
 
+def printa_cOiSaS(numVariables, numRestrictions, nonNegativity, objFunction, restrictions):
+    print("==========================================")
+    print("numVar:", numVariables, "numRestr:", numRestrictions)
+    print("Variáveis com restrição de nao-neg:", nonNegativity)
+    print("[ ", end="")
+    for i in range(len(objFunction)): print("%3d" % objFunction[i], ",", sep="", end="")
+    print(" ] <- C")
+    for i in range(len(restrictions)):
+        print("[ ", end="")
+        for j in range(len(restrictions[i])):
+            print("%3d" % restrictions[i][j], ",", sep="", end="")
+        print(" ] <- (A|b)")
+    print("==========================================")
+
+
+def AddZeros(restrictions, numVariables, i, objFunction):
+    objFunction.insert(numVariables, 0)
+    for j in range(len(restrictions)):
+        if j is not i:
+            restrictions[j].insert(numVariables-1, 0)
+    
+
 
 def ReadInput(inputFile):
     # Lê o conteúdo do arquivo
@@ -34,13 +56,6 @@ def ReadInput(inputFile):
     for i in range(numRestrictions):
         restrictions[i] = inputFile.readline().split()
 
-    print("========================")
-    print("numVar:", numVariables, "numRestr:", numRestrictions)
-    print("non neg", nonNegativity)
-    print("obj func:", objFunction)
-    print("restric.:", restrictions)
-    print("========================")
-
     # Substitui as variáveis sem restrição de não-negatividade
     for i in range(len(nonNegativity)):
         isPositive = int(nonNegativity[i])
@@ -53,32 +68,28 @@ def ReadInput(inputFile):
                 if int(restrictions[j][i]) is not 0:
                     restrictions[j].insert(i+1, int(restrictions[j][i])*-1)
 
-    print("========================")
-    print("numVar:", numVariables, "numRestr:", numRestrictions)
-    print("non neg", nonNegativity)
-    print("obj func:", objFunction)
-    for i in range(len(restrictions)): print("restric.:", restrictions[i])
-    print("========================")
-
     # Adiciona as variáveis de folga
     for i in range(len(restrictions)):
         if restrictions[i][numVariables] == '<=':
             # Adiciona variável de folga positiva
             restrictions[i][numVariables] = 1
             numVariables += 1
-        if j == '>=':
+            AddZeros(restrictions, numVariables, i, objFunction)
+        elif restrictions[i][numVariables] == '>=':
             # Adiciona variável de folga negativa
-            restrictions[i][numVariables] = 1
+            restrictions[i][numVariables] = -1
             numVariables += 1
+            AddZeros(restrictions, numVariables, i, objFunction)
+        elif restrictions[i][numVariables] == '==':
+            restrictions[i].remove('==')
         # if j == '==':
 
-    print("========================")
-    print("numVar:", numVariables, "numRestr:", numRestrictions)
-    print("non neg", nonNegativity)
-    print("obj func:", objFunction)
-    for i in range(len(restrictions)): print("restric.:", restrictions[i])
-    print("========================")
+    # Converte em uma lista de inteiros
+    for i in range(len(restrictions)):
+        restrictions[i] = list(map(int, restrictions[i]))
 
+    printa_cOiSaS(numVariables, numRestrictions, nonNegativity, objFunction, restrictions)
+    
 
 def main():
     inputFile = open(argv[1])
