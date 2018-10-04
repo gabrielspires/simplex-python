@@ -64,41 +64,47 @@ def ReadInput(inputFile):
         if not isPositive:
             print("É zero, substituir por x^+ - x^- (uma variavel a mais)!")
             numVariables += 1
-            if objFunction[i] > 0:
+            if objFunction[i] is not 0:
                 objFunction.insert(i+1, objFunction[i]*-1)
             for j in range(len(restrictions)):
                 if int(restrictions[j][i]) is not 0:
-                    restrictions[j].insert(i+1, int(restrictions[j][i])*-1)
+                    restrictions[j].insert(i+1, str(int(restrictions[j][i])*-1))
 
     # Adiciona as variáveis de folga
     for i in range(len(restrictions)):
-        if restrictions[i][numVariables] == '<=':
+        if restrictions[i][-2] == '<=':
             # Adiciona variável de folga positiva
-            restrictions[i][numVariables] = 1
+            restrictions[i][-2] = 1
             numVariables += 1
             AddZeros(restrictions, numVariables, i, objFunction)
-        elif restrictions[i][numVariables] == '>=':
+        elif restrictions[i][-2] == '>=':
             # Adiciona variável de folga negativa
-            restrictions[i][numVariables] = -1
+            restrictions[i][-2] = -1
             numVariables += 1
             AddZeros(restrictions, numVariables, i, objFunction)
-        elif restrictions[i][numVariables] == '==':
+        elif restrictions[i][-2] == '==':
             restrictions[i].remove('==')
 
-    # Converte em uma lista de inteiros
+    # Converte as listas em fractions
+    objFunction = [Fraction(x) for x in objFunction]
+    objFunction.insert(-1, Fraction(0))
+    objFunction = np.array(objFunction)
     for i in range(len(restrictions)):
-        restrictions[i] = list(map(float, restrictions[i]))
         restrictions[i] = [Fraction(x) for x in restrictions[i]]
 
-    objFunction = [Fraction(x) for x in objFunction]
-    printa_cOiSaS(numVariables, numRestrictions, nonNegativity, objFunction, restrictions)
+    # printa_cOiSaS(numVariables, numRestrictions, nonNegativity, objFunction, restrictions)
 
-    
+    FPIMatrix = []
+    for i in range(len(restrictions)):
+        FPIMatrix += restrictions[i]
 
-    teste = np.matrix(restrictions)
-    teste.reshape(numVariables+1, numRestrictions)
-    print(teste)
-    
+    FPIMatrix = np.matrix(FPIMatrix)
+    FPIMatrix = FPIMatrix.reshape(numRestrictions, numVariables+1)
+    print(FPIMatrix)
+    print("asdasd")
+    FPIMatrix = np.insert(FPIMatrix, 0, objFunction, 0)
+
+    print(FPIMatrix)
 
 def main():
     inputFile = open(argv[1])
