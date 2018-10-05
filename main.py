@@ -14,25 +14,26 @@
 # // (e)  Ao final, deve escrever um arquivo de sa ́ıda. Ser ́a dado 1 ponto extra para quem
 # // incluir certificados no arquivo de saída.
 
-from sys import argv
-from fractions import Fraction
-import numpy as np
+from sys        import argv
+from fractions  import Fraction
+import numpy    as np
 
 
-def printa_cOiSaS(numVariables, numRestrictions, nonNegativity, restrictions):
+def printa_cOiSaS(FPIMatrix):
+    numRows, numColumns = FPIMatrix.shape
+    numColumns -= 1
+
     print("==========================================")
-    print("numVar:", numVariables, "numRestr:", numRestrictions)
-    print("Variáveis com restrição de nao-neg:", nonNegativity)
     print("    ", end = '')
-    for i in range(numVariables+1): print("%2d" % i, "\t", end='')
+    for i in range(numColumns): print("%2d" % i, "\t", end='')
     print()
-    for i in range(numRestrictions+1):
+    for i in range(numRows):
         print(i, "| ", end="")
-        for j in range(numVariables+1):
-            if (restrictions[i,j].denominator == 1):
-                print("%2d" % restrictions[i,j].numerator, '\t', sep="", end="")
+        for j in range(numColumns+1):
+            if (FPIMatrix[i,j].denominator == 1):
+                print("%2d" % FPIMatrix[i,j].numerator, '\t', sep="", end="")
             else:
-                print(restrictions[i,j].numerator, '/', restrictions[i,j].denominator, '\t', sep="", end="")
+                print(FPIMatrix[i,j].numerator, '/', FPIMatrix[i,j].denominator, '\t', sep="", end="")
         if i == 0: print(" | <- (C|VO)")
         else: print(" | <- (A|b)")
     print("==========================================")
@@ -46,9 +47,8 @@ def AddZeros(restrictions, numVariables, slackVar, objFunction):
         if j is not slackVar:
             restrictions[j].insert(numVariables-1, 0)
     
-
+# Lê o arquivo de entrada e cospe uma matriz em FPI
 def ReadInput(inputFile):
-    # Lê o conteúdo do arquivo
     numVariables    = int(inputFile.readline())
     numRestrictions = int(inputFile.readline())
 
@@ -71,7 +71,7 @@ def ReadInput(inputFile):
     for i in range(len(nonNegativity)):
         isPositive = int(nonNegativity[i])
         if not isPositive:
-            print("Variável livre encontrada, substituir por x^+ - x^- (uma variavel a mais)!")
+            # É uma variável livre
             numVariables += 1
             if objFunction[i] is not 0:
                 objFunction.insert(i+1, objFunction[i]*-1)
@@ -118,14 +118,17 @@ def ReadInput(inputFile):
     # Insere a função objetiva antes da primeira linha
     FPIMatrix = np.insert(FPIMatrix, 0, objFunction, 0)
 
-    printa_cOiSaS(numVariables, numRestrictions, nonNegativity, FPIMatrix)
+    # Fecha o arquivo de entrada e retorna a PL
+    inputFile.close()
+    return FPIMatrix
+
 
 def main():
     inputFile = open(argv[1])
     outputFile = open(argv[2], "w")
     
-    ReadInput(inputFile)
-    
+    FPIMatrix = ReadInput(inputFile)
+    printa_cOiSaS(FPIMatrix)
 
 if __name__ == '__main__':
     main()
