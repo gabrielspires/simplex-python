@@ -19,26 +19,31 @@ from fractions import Fraction
 import numpy as np
 
 
-def printa_cOiSaS(numVariables, numRestrictions, nonNegativity, objFunction, restrictions):
+def printa_cOiSaS(numVariables, numRestrictions, nonNegativity, restrictions):
     print("==========================================")
     print("numVar:", numVariables, "numRestr:", numRestrictions)
     print("Variáveis com restrição de nao-neg:", nonNegativity)
-    print("[ ", end="")
-    for i in range(len(objFunction)): print("%2d" % objFunction[i].numerator, '/', objFunction[i].denominator, ", ", sep="", end="")
-    print(" ] <- C")
-    for i in range(len(restrictions)):
-        print("[ ", end="")
-        for j in range(len(restrictions[i])):
-            #print("%3.1f" % restrictions[i][j], ",", sep="", end="")
-            print("%2d" % restrictions[i][j].numerator, '/', restrictions[i][j].denominator, ', ', sep="", end="")
-        print(" ] <- (A|b)")
+    print("    ", end = '')
+    for i in range(numVariables+1): print("%2d" % i, "\t", end='')
+    print()
+    for i in range(numRestrictions+1):
+        print(i, "| ", end="")
+        for j in range(numVariables+1):
+            if (restrictions[i,j].denominator == 1):
+                print("%2d" % restrictions[i,j].numerator, '\t', sep="", end="")
+            else:
+                print(restrictions[i,j].numerator, '/', restrictions[i,j].denominator, '\t', sep="", end="")
+        if i == 0: print(" | <- (C|VO)")
+        else: print(" | <- (A|b)")
     print("==========================================")
 
-
-def AddZeros(restrictions, numVariables, i, objFunction):
+# adiciona zeros na coluna das bases criadas ao se adicionar as variaveis de folga
+def AddZeros(restrictions, numVariables, slackVar, objFunction):
+    # Adiciona uma coluna na posição numVariables da função objetiva
     objFunction.insert(numVariables, 0)
+    # Para todas as posições exceto o 1 que adicionamos, coloque zero
     for j in range(len(restrictions)):
-        if j is not i:
+        if j is not slackVar:
             restrictions[j].insert(numVariables-1, 0)
     
 
@@ -50,19 +55,23 @@ def ReadInput(inputFile):
     nonNegativity = inputFile.readline().split()
     objFunction   = inputFile.readline().split()
 
-    # Converte em uma lista de inteiros
+    # Converte em uma lista de float
     objFunction = list(map(float, objFunction))
 
+    # Cria uma lista vazia com o mesmo número de posições que restrições do problema 
+    # Cada posição será uma lista com os elementos da restrição lida do arquivo
     restrictions = [0] * numRestrictions
 
+    # Lê as linhas do arquivo contendo as restriçoes
+    # Cada restrição fica em uma posição da lista (vira uma lista de listas)
     for i in range(numRestrictions):
         restrictions[i] = inputFile.readline().split()
-
+    
     # Substitui as variáveis sem restrição de não-negatividade
     for i in range(len(nonNegativity)):
         isPositive = int(nonNegativity[i])
         if not isPositive:
-            print("É zero, substituir por x^+ - x^- (uma variavel a mais)!")
+            print("Variável livre encontrada, substituir por x^+ - x^- (uma variavel a mais)!")
             numVariables += 1
             if objFunction[i] is not 0:
                 objFunction.insert(i+1, objFunction[i]*-1)
@@ -83,6 +92,7 @@ def ReadInput(inputFile):
             numVariables += 1
             AddZeros(restrictions, numVariables, i, objFunction)
         elif restrictions[i][-2] == '==':
+            # Remove o sinal, já que não é preciso adicionar nada
             restrictions[i].remove('==')
 
     # Converte as listas em fractions
@@ -92,19 +102,23 @@ def ReadInput(inputFile):
     for i in range(len(restrictions)):
         restrictions[i] = [Fraction(x) for x in restrictions[i]]
 
-    # printa_cOiSaS(numVariables, numRestrictions, nonNegativity, objFunction, restrictions)
-
+    # Cria a matrix da PL
     FPIMatrix = []
+
+    # Coloca as restrições na matrix (tudo na mesma linha pq é mais fácil)
     for i in range(len(restrictions)):
         FPIMatrix += restrictions[i]
 
+    # Converte em matriz do numpy
     FPIMatrix = np.matrix(FPIMatrix)
+
+    # Transforma a matrix p/ ter as dimensões corretas
     FPIMatrix = FPIMatrix.reshape(numRestrictions, numVariables+1)
-    print(FPIMatrix)
-    print("asdasd")
+
+    # Insere a função objetiva antes da primeira linha
     FPIMatrix = np.insert(FPIMatrix, 0, objFunction, 0)
 
-    print(FPIMatrix)
+    printa_cOiSaS(numVariables, numRestrictions, nonNegativity, FPIMatrix)
 
 def main():
     inputFile = open(argv[1])
