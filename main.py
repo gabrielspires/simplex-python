@@ -1,8 +1,8 @@
-# // 2 			Nº de variaveis
-# // 2			Nº de restrições (exceto as de nao negatividade)
+# // 2 			    Nº de variaveis
+# // 2			    Nº de restrições (exceto as de nao negatividade)
 # // 1 0			Indica se as variáveis são não negativas ou livres (x>=0 ou sem restrição de nao negatividade)
 # // 1 1			Coeficientes da função objetivo
-# // 1 -1 <= 2	Restrições
+# // 1 -1 <= 2	    Restrições
 # // 1 1 >= 1		Restrições
 
 # // (a)  Ler a entrada
@@ -11,11 +11,12 @@
 # // (este passo pode ser pulado caso você identifique uma base ́obvia).
 # // (d)  Se o problema for viável, rodar o Simplex e ou encontrar a solução ́otima, ou
 # // verificar que o problema é ilimitado.
-# // (e)  Ao final, deve escrever um arquivo de sa ́ıda. Ser ́a dado 1 ponto extra para quem
+# // (e)  Ao final, deve escrever um arquivo de saída. Será dado 1 ponto extra para quem
 # // incluir certificados no arquivo de saída.
 
 from sys        import argv
 from fractions  import Fraction
+from copy       import deepcopy
 import numpy    as np
 
 
@@ -23,10 +24,10 @@ def printa_cOiSaS(FPIMatrix):
     numRows, numColumns = FPIMatrix.shape
     numColumns -= 1
 
-    print("==========================================")
-    print("    ", end = '')
-    for i in range(numColumns): print("%2d" % i, "\t", end='')
-    print()
+    # print("==========================================")
+    # print("    ", end = '')
+    # for i in range(numColumns): print("%2d" % i, "\t", end='')
+    # print()
     for i in range(numRows):
         print(i, "| ", end="")
         for j in range(numColumns+1):
@@ -36,7 +37,17 @@ def printa_cOiSaS(FPIMatrix):
                 print(FPIMatrix[i,j].numerator, '/', FPIMatrix[i,j].denominator, '\t', sep="", end="")
         if i == 0: print(" | <- (C|VO)")
         else: print(" | <- (A|b)")
-    print("==========================================")
+    # print("==========================================")
+
+
+def AssembleTableau(FPIMatrix, basis):
+    # Adiciona a matriz de operações na PL
+    tableau = np.append(basis, FPIMatrix, axis=1)
+
+    # Multiplica o vetor c por -1
+    tableau[0,:] *= -1
+    return tableau
+
 
 # adiciona zeros na coluna das bases criadas ao se adicionar as variaveis de folga
 def AddZeros(restrictions, numVariables, slackVar, objFunction):
@@ -47,6 +58,7 @@ def AddZeros(restrictions, numVariables, slackVar, objFunction):
         if j is not slackVar:
             restrictions[j].insert(numVariables-1, 0)
     
+
 # Lê o arquivo de entrada e cospe uma matriz em FPI
 def ReadInput(inputFile):
     numVariables    = int(inputFile.readline())
@@ -54,6 +66,8 @@ def ReadInput(inputFile):
 
     nonNegativity = inputFile.readline().split()
     objFunction   = inputFile.readline().split()
+
+    basisColumns = []
 
     # Converte em uma lista de float
     objFunction = list(map(float, objFunction))
@@ -66,7 +80,7 @@ def ReadInput(inputFile):
     # Cada restrição fica em uma posição da lista (vira uma lista de listas)
     for i in range(numRestrictions):
         restrictions[i] = inputFile.readline().split()
-    
+        
     # Substitui as variáveis sem restrição de não-negatividade
     for i in range(len(nonNegativity)):
         isPositive = int(nonNegativity[i])
@@ -78,17 +92,19 @@ def ReadInput(inputFile):
             for j in range(len(restrictions)):
                 if int(restrictions[j][i]) is not 0:
                     restrictions[j].insert(i+1, str(int(restrictions[j][i])*-1))
-
+    
     # Adiciona as variáveis de folga
     for i in range(len(restrictions)):
         if restrictions[i][-2] == '<=':
             # Adiciona variável de folga positiva
             restrictions[i][-2] = 1
+            basisColumns.append(numVariables)
             numVariables += 1
             AddZeros(restrictions, numVariables, i, objFunction)
         elif restrictions[i][-2] == '>=':
             # Adiciona variável de folga negativa
             restrictions[i][-2] = -1
+            basisColumns.append(numVariables)
             numVariables += 1
             AddZeros(restrictions, numVariables, i, objFunction)
         elif restrictions[i][-2] == '==':
@@ -120,15 +136,31 @@ def ReadInput(inputFile):
 
     # Fecha o arquivo de entrada e retorna a PL
     inputFile.close()
-    return FPIMatrix
+    
+    basis = deepcopy(FPIMatrix[:,basisColumns[0]])
+    basisColumns.pop(0)
+    for x in basisColumns:
+        basis = np.append(basis, FPIMatrix[ : , x], axis=1)
+
+    # i,j = np.shape(basis)
+    # for a in range(i):
+    #     for b in range(j):
+    #         print(basis[a,b], "\t", end='')
+    #     print()
+    return FPIMatrix, basis
 
 
 def main():
     inputFile = open(argv[1])
     outputFile = open(argv[2], "w")
     
-    FPIMatrix = ReadInput(inputFile)
-    printa_cOiSaS(FPIMatrix)
+    # Monta a PL em FPI
+    FPIMatrix, basis = ReadInput(inputFile)
+    
+    # Monta o Tableau usando a PL em FPI
+    tableau = AssembleTableau(FPIMatrix, basis)
+    # print(np.shape(tableau), np.shape(FPIMatrix))
+    printa_cOiSaS(tableau)
 
 if __name__ == '__main__':
     main()
