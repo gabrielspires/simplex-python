@@ -21,7 +21,9 @@ class Simplex:
     def init(self, m, r, c):
         self.matrix.init(m, r, c)
         self.matrix.tableau()
-        self.selection()
+        # self.selection()
+        
+        
 
     # função chave do trabalho: verifica o tableau a cada etapa e indica o que deverá ser feito a seguir
     def selection(self):

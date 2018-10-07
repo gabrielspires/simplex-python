@@ -43,11 +43,8 @@ class Matrix:
             for j in range(0, self.getGap().shape[1]):
                 if(self.getGap()[i, j] == 1):
                     self.base.append([i + 1, self.A.shape[0] + self.c.shape[1] + j])
-        i,j = np.shape(self.tableau)
-        for a in range(i):
-            for b in range(j):
-                print(self.tableau[a,b], "\t", end='')
-            print()
+        
+        
 
     # passa todos os valores para Fraction (facilitar cálculos e garantir precisão nas contas)
     def updateFractions(self):

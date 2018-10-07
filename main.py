@@ -18,7 +18,8 @@ from sys        import argv
 from fractions  import Fraction
 from copy       import deepcopy
 import numpy    as np
-
+from matrix import Matrix
+from simplex import Simplex
 
 def printa_cOiSaS(FPIMatrix):
     numRows, numColumns = FPIMatrix.shape
@@ -29,7 +30,7 @@ def printa_cOiSaS(FPIMatrix):
     # for i in range(numColumns): print("%2d" % i, "\t", end='')
     # print()
     for i in range(numRows):
-        print(i, "| ", end="")
+        # print(i, "| ", end="")
         for j in range(numColumns+1):
             if (FPIMatrix[i,j].denominator == 1):
                 print("%2d" % FPIMatrix[i,j].numerator, '\t', sep="", end="")
@@ -40,9 +41,12 @@ def printa_cOiSaS(FPIMatrix):
     # print("==========================================")
 
 
-def AssembleTableau(FPIMatrix, basis):
+def AssembleTableau(FPIMatrix, basis):    
     # Adiciona a matriz de operações na PL
-    tableau = np.append(basis, FPIMatrix, axis=1)
+    zeros = np.zeros((1, FPIMatrix.shape[0]-1), dtype='object')
+    identityMatrix = np.identity(FPIMatrix.shape[0]-1, dtype='object')
+    operationMatrix = np.concatenate((zeros,identityMatrix), axis=0)
+    tableau = np.concatenate((operationMatrix, FPIMatrix), axis=1)    
 
     # Multiplica o vetor c por -1
     tableau[0,:] *= -1
@@ -56,8 +60,10 @@ def AddZeros(restrictions, numVariables, slackVar, objFunction):
     # Para todas as posições exceto o 1 que adicionamos, coloque zero
     for j in range(len(restrictions)):
         if j is not slackVar:
-            restrictions[j].insert(numVariables-1, 0)
-    
+            # print(j,restrictions[j], end="\n")
+            restrictions[j].insert(numVariables, 0)
+            # print(j,restrictions[j], end="\n\n")
+
 
 # Lê o arquivo de entrada e cospe uma matriz em FPI
 def ReadInput(inputFile):
@@ -68,6 +74,8 @@ def ReadInput(inputFile):
     objFunction   = inputFile.readline().split()
 
     basisColumns = []
+
+    numSlackVar = 0
 
     # Converte em uma lista de float
     objFunction = list(map(float, objFunction))
@@ -82,38 +90,50 @@ def ReadInput(inputFile):
         restrictions[i] = inputFile.readline().split()
         
     # Substitui as variáveis sem restrição de não-negatividade
+    numFreeVar = 0
     for i in range(len(nonNegativity)):
-        isPositive = int(nonNegativity[i])
-        if not isPositive:
+        positive = int(nonNegativity[i])
+        if not positive:
             # É uma variável livre
+            numFreeVar += 1
             numVariables += 1
-            if objFunction[i] is not 0:
-                objFunction.insert(i+1, objFunction[i]*-1)
+            # if objFunction[i] is not 0:
+            objFunction.insert(i+numFreeVar, objFunction[i+numFreeVar-1]*-1)
             for j in range(len(restrictions)):
-                if int(restrictions[j][i]) is not 0:
-                    restrictions[j].insert(i+1, str(int(restrictions[j][i])*-1))
+                # if int(restrictions[j][i]) is not 0:
+                restrictions[j].insert(i+numFreeVar, int(restrictions[j][i+numFreeVar-1])*-1)
     
+    # Adiciona o valor objetivo 0 na função objetiva
+    objFunction.append(Fraction(0))
+
     # Adiciona as variáveis de folga
     for i in range(len(restrictions)):
-        if restrictions[i][-2] == '<=':
+        # print(restrictions[i], '\n')
+        if restrictions[i][numVariables] == '<=':
             # Adiciona variável de folga positiva
-            restrictions[i][-2] = 1
+            restrictions[i][numVariables] = 1
+            AddZeros(restrictions, numVariables, i, objFunction)
             basisColumns.append(numVariables)
             numVariables += 1
-            AddZeros(restrictions, numVariables, i, objFunction)
-        elif restrictions[i][-2] == '>=':
+            numSlackVar += 1
+        elif restrictions[i][numVariables] == '>=':
             # Adiciona variável de folga negativa
-            restrictions[i][-2] = -1
+            restrictions[i][numVariables] = -1
+            AddZeros(restrictions, numVariables, i, objFunction)
             basisColumns.append(numVariables)
             numVariables += 1
-            AddZeros(restrictions, numVariables, i, objFunction)
-        elif restrictions[i][-2] == '==':
+            numSlackVar += 1
+        elif restrictions[i][numVariables] == '==':
             # Remove o sinal, já que não é preciso adicionar nada
+            # restrictions[i][numVariables] == 0
             restrictions[i].remove('==')
+
+    # for i in range(len(restrictions)):
+    #     print(restrictions[i])
 
     # Converte as listas em fractions
     objFunction = [Fraction(x) for x in objFunction]
-    objFunction.insert(-1, Fraction(0))
+    # objFunction.insert(-1, Fraction(0))
     objFunction = np.array(objFunction)
     for i in range(len(restrictions)):
         restrictions[i] = [Fraction(x) for x in restrictions[i]]
@@ -137,17 +157,14 @@ def ReadInput(inputFile):
     # Fecha o arquivo de entrada e retorna a PL
     inputFile.close()
     
-    basis = deepcopy(FPIMatrix[:,basisColumns[0]])
-    basisColumns.pop(0)
-    for x in basisColumns:
-        basis = np.append(basis, FPIMatrix[ : , x], axis=1)
+    basis = []
+    if len(basisColumns) > 0:
+        basis = deepcopy(FPIMatrix[:,basisColumns[0]])
+        basisColumns.pop(0)
+        for x in basisColumns:
+            basis = np.append(basis, FPIMatrix[ : , x], axis=1)
 
-    # i,j = np.shape(basis)
-    # for a in range(i):
-    #     for b in range(j):
-    #         print(basis[a,b], "\t", end='')
-    #     print()
-    return FPIMatrix, basis
+    return FPIMatrix, basis, numSlackVar
 
 
 def main():
@@ -155,12 +172,18 @@ def main():
     outputFile = open(argv[2], "w")
     
     # Monta a PL em FPI
-    FPIMatrix, basis = ReadInput(inputFile)
+    FPIMatrix, basis, numSlackVar = ReadInput(inputFile)
     
     # Monta o Tableau usando a PL em FPI
     tableau = AssembleTableau(FPIMatrix, basis)
-    # print(np.shape(tableau), np.shape(FPIMatrix))
-    printa_cOiSaS(tableau)
+
+    # simplex = Simplex()
+    # simplex.init(tableau, numSlackVar)
+
+    matrix = Matrix(tableau, numSlackVar)
+
+    # printa_cOiSaS(tableau)
+    # print(tableau)
 
 if __name__ == '__main__':
     main()
