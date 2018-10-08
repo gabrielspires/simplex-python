@@ -1,222 +1,137 @@
-from fractions  import Fraction
-import numpy    as np
-from copy       import deepcopy
+from fractions import Fraction
+import numpy as np
 
 
-# Tableau
-# Tableau aux
-# Lista de bases
-
-
+# classe utilizada para guardar uma instância de uma PL (já em formato FPI e no tableau), seus elementos e seus métodos
 class Matrix:
-    tableau_original = None
-    tableau_aux = None
-    aux = False
-    basis = []
-    slackVar = None
-    A = None
-    b = None
-    c = None
+    A = 0
+    b = 0
+    c = 0
+    tableau = 0
+    base = []
 
-    def __init__(self, tableau, slackVar):
-        self.slackVar = slackVar
-        self.updateFractions(tableau)
+    # inicializa partes importantes da matriz
+    def init(self, matrix, row, col):
+        #print(matrix)
+        aux1 = np.matrix(matrix, dtype='object')
+        #print(aux1.shape)
+        aux2 = aux1.reshape(row + 1, col + 1)
 
-        self.tableau_original = np.matrix(tableau, dtype="object")
-        self.breakTableau()
-        self.setAux()
+        # guarda as partes originais da PL
+        self.A = np.matrix(aux2[1:, 0:-1], dtype='object')
+        self.b = np.matrix(aux2[:, -1], dtype='object')
+        self.c = np.matrix(aux2[0, 0:-1], dtype='object')
 
-        # self.printa_cOiSaS(self.tableau_original)
-        # self.printa_cOiSaS(self.getA())
-        # self.printa_cOiSaS(self.getB())
-        # self.printa_cOiSaS(self.getC())
-        # self.printa_cOiSaS(self.getOpMatrix())
-        # self.printa_cOiSaS(self.getSlack())
-        # self.printa_cOiSaS(self.tableau_original)
-        # self.printa_cOiSaS(self.tableau_original)
-        # nmero variapveis --> bases = [(0,0), (1,0), (2,0)]
-        # self.table
+    # monta o tableau para a PL original
+    def tableau(self):
+        zeros = np.zeros((1, self.A.shape[0]), dtype='object')
+        identity = np.identity(self.A.shape[0], dtype='object')
 
-        # fazer tableau orig
-        # fazer tableu da PL aux
-    
-    # dada uma posição no tableau_aux (linha, coluna), pivoteia o elemento nessa posição
-    def pivoting(self, row, col):
-        if not self.aux:
-            # calcula por quanto a linha do pivô será multiplicada para que ele seja 1
-            multiplier = Fraction(1, self.tableau_original[row, col])
+        # calcula -c
+        c1 = -1 * self.c
+        # monta vetor -c completo
+        c2 = np.concatenate((zeros, c1, zeros), axis=1)
+        # monta matriz A completa
+        a1 = np.concatenate((identity, self.A, identity), axis=1)
+        # junta -c e A
+        a2 = np.concatenate((c2, a1), axis=0)
+        # adiciona vetor b
+        self.tableau = np.concatenate((a2, self.b), axis=1)
 
-            # atualiza os elementos na linha do pivô
-            for i in range(0, self.tableau_original.shape[1]):
-                self.tableau_original[row, i] = self.tableau_original[row, i] * multiplier
+        self.updateFractions()
 
-            # atualiza restante da matriz
-            for i in range(0, self.tableau_original.shape[0]):
-                if i != row:
-                    multiplier = -1 * Fraction(self.tableau_original.T[col, i], self.tableau_original.T[col, row])
-                    for j in range(0, self.tableau_original.shape[1]):
-                        self.tableau_original[i, j] = self.tableau_original[i, j] + self.tableau_original[row, j] * multiplier
+        # adiciona as novas bases na lista de bases
+        for i in range(0, self.getGap().shape[0]):
+            for j in range(0, self.getGap().shape[1]):
+                if(self.getGap()[i, j] == 1):
+                    self.base.append([i + 1, self.A.shape[0] + self.c.shape[1] + j])
 
-            # atualiza lista de bases considerando a nova base encontrada
-            self.updateBase(row, col)
-
-            print('pivot tableau original', self.basis)
-            self.printa_cOiSaS(self.tableau_original)
-        else:
-            # calcula por quanto a linha do pivô será multiplicada para que ele seja 1
-            multiplier = Fraction(1, self.tableau_aux[row, col])
-
-            # atualiza os elementos na linha do pivô
-            for i in range(0, self.tableau_aux.shape[1]):
-                self.tableau_aux[row, i] = self.tableau_aux[row, i] * multiplier
-
-            # atualiza restante da matriz
-            for i in range(0, self.tableau_aux.shape[0]):
-                if i != row:
-                    multiplier = -1 * Fraction(self.tableau_aux.T[col, i], self.tableau_aux.T[col, row])
-                    for j in range(0, self.tableau_aux.shape[1]):
-                        self.tableau_aux[i, j] = self.tableau_aux[i, j] + self.tableau_aux[row, j] * multiplier
-
-            # atualiza lista de bases considerando a nova base encontrada
-            self.updateBase(row, col)
-
-            print('pivot tableau auxiliar', self.basis)
-            self.printa_cOiSaS(self.tableau_aux)
-
+    # passa todos os valores para Fraction (facilitar cálculos e garantir precisão nas contas)
+    def updateFractions(self):
+        for i in range(0, self.tableau.shape[0]):
+            for j in range(0, self.tableau.shape[1]):
+                self.tableau[i, j] = Fraction(self.tableau[i, j])
 
     # dada uma posição no tableau (linha, coluna), atualiza a lista de bases
     def updateBase(self, row, col):
-        for i in self.basis:
+        for i in self.base:
             if(i[0] == row):
                 i[1] = col
                 break
 
+    # dada uma posição no tableau (linha, coluna), pivoteia o elemento nessa posição
+    def pivoting(self, row, col):
+        # mensagem de erro caso não exista a posição passada
+        if(row > self.tableau.shape[0] or col > self.tableau.shape[1]):
+            print("Invalid position in tableau!")
+            return
 
-    # passa todos os valores para Fraction (facilitar cálculos e garantir precisão nas contas)
-    def updateFractions(self, tableau):
-        for i in range(0, tableau.shape[0]):
-            for j in range(0, tableau.shape[1]):
-                tableau[i, j] = Fraction(tableau[i, j])
+        # calcula por quanto a linha do pivô será multiplicada para que ele seja 1
+        multiplier = Fraction(1, self.tableau[row, col])
 
+        # atualiza os elementos na linha do pivô
+        for i in range(0, self.tableau.shape[1]):
+            self.tableau[row, i] = self.tableau[row, i] * multiplier
 
-    def setAux(self):
-        # print('tableau original')
-        # self.printa_cOiSaS(self.tableau_original)
+        # atualiza restante da matriz
+        for i in range(0, self.tableau.shape[0]):
+            if(i != row):
+                multiplier = -1 * Fraction(self.tableau.T[col, i], self.tableau.T[col, row])
+                for j in range(0, self.tableau.shape[1]):
+                    self.tableau[i, j] = self.tableau[i, j] + self.tableau[row, j] * multiplier
 
-        # Cria uma linha de zeros
-        C = np.zeros((1, self.tableau_original.shape[1]-1))
-        # Pega todas as linhas do tableau menos a primeira
-        A = np.matrix(self.tableau_original[1:,:-1])
+        # atualiza lista de bases considerando a nova base encontrada
+        self.updateBase(row, col)
 
-        # Concatena a primeira linha com o resto da matrix
-        self.tableau_aux = np.concatenate((C, A), axis=0)
-        
-        idMatTop = np.ones((1, self.tableau_aux.shape[0]-1))
-        idMat = np.identity(self.tableau_aux.shape[0]-1)
-        
-        idMat = np.concatenate((idMatTop, idMat), axis=0)
-        idMat = np.concatenate((idMat, self.tableau_original[:,-1]), axis=1)
-        self.tableau_aux = np.concatenate((self.tableau_aux, idMat), axis=1)
-        self.updateFractions(self.tableau_aux)
+    # monta tableau para PL auxiliar
+    def extendAuxiliary(self):
+        zeros1 = np.zeros((1, self.getC().shape[1]), dtype='object')
+        ones = np.ones((1, self.getGap().shape[1]), dtype='object')
+        identity = np.identity(self.A.shape[0], dtype='object')
 
-        # adiciona as novas bases na lista de bases
-        for i in range(0, self.getSlack().shape[0]):
-            for j in range(0, self.getSlack().shape[1]):
-                if(self.getSlack()[i, j] == 1):
-                    self.basis.append([i + 1, 2*self.A.shape[0] + self.c.shape[1] + j])
+        # monta novo -c
+        c1 = np.concatenate((zeros1, ones), axis=1)
+        # adiciona a identidade extra
+        a1 = np.concatenate((self.getA(), identity), axis=1)
+        a2 = np.concatenate((c1, a1), axis=0)
+        self.tableau = np.concatenate((self.getMem(), a2, self.getB()), axis=1)
+        self.updateFractions()
 
-        # print('tableau aux')
-        # self.printa_cOiSaS(self.tableau_aux)
-        # print(self.basis)
-        # self.printa_cOiSaS(self.getA())
-        # print(self.getB())
-        # print(self.getC())
-        # self.printa_cOiSaS(self.getOpMatrix())
-        # self.printa_cOiSaS(self.getSlack())
+        # reseta a lista de bases e coloca as bases novas na lista
+        self.base = []
+        for i in range(0, self.getGap().shape[0]):
+            for j in range(0, self.getGap().shape[1]):
+                if(self.getGap()[i, j] == 1):
+                    self.base.append([i + 1, self.A.shape[0] + (self.getC().shape[1] - self.A.shape[0]) + j])
 
-    def setAux2(self):
-        # print('tableau original')
-        # self.printa_cOiSaS(self.tableau_original)
+    # volta para a PL original
+    def destroyAuxiliary(self):
+        zeros = np.zeros((1, self.A.shape[0]), dtype='object')
 
-        # Cria uma linha de zeros
-        C = np.zeros((1, self.tableau_aux.shape[1] - 1))
-        # Pega todas as linhas do tableau menos a primeira
-        A = np.matrix(self.tableau_aux[1:, :-1])
-
-        # Concatena a primeira linha com o resto da matrix
-        self.tableau_aux = np.concatenate((C, A), axis=0)
-
-        idMatTop = np.ones((1, self.tableau_aux.shape[0] - 1))
-        idMat = np.identity(self.tableau_aux.shape[0] - 1)
-
-        idMat = np.concatenate((idMatTop, idMat), axis=0)
-        idMat = np.concatenate((idMat, self.tableau_aux[:, -1]), axis=1)
-        self.tableau_aux = np.concatenate((self.tableau_aux, idMat), axis=1)
-        self.updateFractions(self.tableau_aux)
-
-        # adiciona as novas bases na lista de bases
-        for i in range(0, self.getSlack().shape[0]):
-            for j in range(0, self.getSlack().shape[1]):
-                if (self.getSlack()[i, j] == 1):
-                    self.basis.append([i + 1, 2 * self.A.shape[0] + self.c.shape[1] + j])
-
-
-    def printa_cOiSaS(self, FPIMatrix):
-        numRows, numColumns = FPIMatrix.shape
-        numColumns -= 1
-
-        # print("==========================================")
-        # print("    ", end = '')
-        # for i in range(numColumns): print("%2d" % i, "\t", end='')
-        # print()
-        for i in range(numRows):
-            # print(i, "| ", end="")
-            for j in range(numColumns+1):
-                if (FPIMatrix[i,j].denominator == 1):
-                    print("\t", FPIMatrix[i,j].numerator, sep="", end="")
-                else:
-                    print("\t", FPIMatrix[i,j].numerator, '/', FPIMatrix[i,j].denominator, sep="", end="")
-            if i == 0: print(" | <- (C|VO)")
-            else: print(" | <- (A|b)")
-        # print("==========================================")
-
-    def breakTableau(self):
-        self.c = self.tableau_original[0, self.slackVar:-(self.slackVar+1)]
-        self.A = self.tableau_original[1:,self.slackVar:-(self.slackVar+1)]
-        self.b = self.tableau_original[:,-1]
+        # restaura -c original do tableau
+        c1 = -1 * self.c
+        c2 = np.concatenate((c1, zeros), axis=1)
+        # concatena -c e A já excluindo a identidade da auxiliar
+        aux1 = np.concatenate((c2, self.getA()[:, :-self.A.shape[0]]), axis=0)
+        self.tableau = np.concatenate((self.getMem(), aux1, self.getB()), axis=1)
+        self.updateFractions()
 
     # retorna a matriz A (A + folgas) atualizado
     def getA(self):
-        if not self.aux:
-            return self.tableau_original[1:, self.A.shape[0]:-1]
-        else:
-            return self.tableau_aux[1:, self.A.shape[0]:-1]
+        return self.tableau[1:, self.A.shape[0]:-1]
 
     # retorna o vetor b (b + valor objetivo) atualizado
     def getB(self):
-        if not self.aux:
-            return self.tableau_original[:, -1]
-        else:
-            return self.tableau_aux[:, -1]
+        return self.tableau[:, -1]
 
     # retorna o vetor -c (-c + custo das folgas) atualizado
     def getC(self):
-        if not self.aux:
-            return self.tableau_original[0, self.A.shape[0]:-1]
-        else:
-            return self.tableau_aux[0, self.A.shape[0]:-1]
+        return self.tableau[0, self.A.shape[0]:-1]
 
     # retorna a matriz "memória" (certificado + matriz de registros)
-    def getOpMatrix(self):
-        if not self.aux:
-            return self.tableau_original[:, 0:self.A.shape[0]]
-        else:
-            return self.tableau_aux[:, 0:self.A.shape[0]]
+    def getMem(self):
+        return self.tableau[:, 0:self.A.shape[0]]
 
     # retorna a matriz de folgas (desconsiderando seu custo, já incluso no -c)
-    def getSlack(self):
-        if not self.aux:
-            return self.tableau_original[1:, -(self.slackVar+1):-1]
-        else:
-            return self.tableau_aux[1:, self.A.shape[0] + (self.getC().shape[1] - self.A.shape[0]):-1]
-
+    def getGap(self):
+        return self.tableau[1:, self.A.shape[0] + (self.getC().shape[1] - self.A.shape[0]):-1]

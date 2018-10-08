@@ -18,8 +18,8 @@ from sys        import argv
 from fractions  import Fraction
 from copy       import deepcopy
 import numpy    as np
-from matrix import Matrix
 from simplex import Simplex
+from utils import getEntry
 
 
 def printa_cOiSaS(FPIMatrix):
@@ -112,60 +112,61 @@ def ReadInput(inputFile):
         # print(restrictions[i], '\n')
         if restrictions[i][numVariables] == '<=':
             # Adiciona variável de folga positiva
-            restrictions[i][numVariables] = 1
-            AddZeros(restrictions, numVariables, i, objFunction)
-            basisColumns.append(numVariables)
-            numVariables += 1
-            numSlackVar += 1
+            restrictions[i].remove('<=')
+            # restrictions[i][numVariables] = 1
+            # AddZeros(restrictions, numVariables, i, objFunction)
+            # basisColumns.append(numVariables)
+            # numVariables += 1
+            # numSlackVar += 1
         elif restrictions[i][numVariables] == '>=':
             # Adiciona variável de folga negativa
-            restrictions[i][numVariables] = -1
-            AddZeros(restrictions, numVariables, i, objFunction)
-            basisColumns.append(numVariables)
-            numVariables += 1
-            numSlackVar += 1
+            #restrictions[i][numVariables] = -1
+            # AddZeros(restrictions, numVariables, i, objFunction)
+            restrictions[i].remove('>=')
+            restrictions[i] = [float(x)*-1 for x in restrictions[i]]
+            # basisColumns.append(numVariables)
+            # numVariables += 1
+            # numSlackVar += 1
         elif restrictions[i][numVariables] == '==':
             # Remove o sinal, já que não é preciso adicionar nada
             # restrictions[i][numVariables] == 0
-            restrictions[i].remove('==')
+            # restrictions[i].remove('==')
+            restrictions[i][numVariables] = -1
+            AddZeros(restrictions, numVariables, i, objFunction)
+            numVariables += 1
 
     # for i in range(len(restrictions)):
     #     print(restrictions[i])
 
     # Converte as listas em fractions
-    objFunction = [Fraction(x) for x in objFunction]
+    objFunction = [int(x) for x in objFunction]
     # objFunction.insert(-1, Fraction(0))
     objFunction = np.array(objFunction)
     for i in range(len(restrictions)):
-        restrictions[i] = [Fraction(x) for x in restrictions[i]]
+        restrictions[i] = [float(x) for x in restrictions[i]]
 
     # Cria a matrix da PL
     FPIMatrix = []
 
     # Coloca as restrições na matrix (tudo na mesma linha pq é mais fácil)
     for i in range(len(restrictions)):
-        FPIMatrix += restrictions[i]
-
-    # Converte em matriz do numpy
-    FPIMatrix = np.matrix(FPIMatrix)
-
-    # Transforma a matrix p/ ter as dimensões corretas
-    FPIMatrix = FPIMatrix.reshape(numRestrictions, numVariables+1)
+        FPIMatrix.append(restrictions[i])
 
     # Insere a função objetiva antes da primeira linha
     FPIMatrix = np.insert(FPIMatrix, 0, objFunction, 0)
 
-    # Fecha o arquivo de entrada e retorna a PL
-    inputFile.close()
-    
-    basis = []
-    if len(basisColumns) > 0:
-        basis = deepcopy(FPIMatrix[:,basisColumns[0]])
-        basisColumns.pop(0)
-        for x in basisColumns:
-            basis = np.append(basis, FPIMatrix[ : , x], axis=1)
+    return FPIMatrix, numVariables, numRestrictions
 
-    return FPIMatrix, basis, numSlackVar
+
+def printar(tableau):
+    i,j = np.shape(tableau)
+    for a in range(i):
+        for b in range(j):
+            print(int(tableau[a,b]), "\t", end='')
+        print()
+
+
+simplex = Simplex()
 
 
 def main():
@@ -173,15 +174,19 @@ def main():
     outputFile = open(argv[2], "w")
     
     # Monta a PL em FPI
-    FPIMatrix, basis, numSlackVar = ReadInput(inputFile)
-    
-    # Monta o Tableau usando a PL em FPI
-    tableau = AssembleTableau(FPIMatrix, basis)
-    printa_cOiSaS(tableau)
-    # Chamo o simplex
-    # simplex = Simplex()
-    # simplex.init(tableau, numSlackVar)
+    FPIMatrix, numVariables, numRestrictions = ReadInput(inputFile)
 
+    aux = "["
+    #print(numRestrictions)
+    #print(numVariables)
+
+    for list in range(len(FPIMatrix)):
+        aux += "[%s" % ",".join([str(i) for i in FPIMatrix[list]]) + "]"
+        if list < len(FPIMatrix)-1:
+            aux += ","
+    aux += "]"
+    # print(aux)
+    simplex.init(aux, numRestrictions, numVariables)
 
 if __name__ == '__main__':
     main()
