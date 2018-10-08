@@ -1,0 +1,4 @@
+Utilizei Python3 nesse trabalho.
+Para rodar o programa utilize o comando abaixo
+
+    python3 main.py entrada.txt saida.txt

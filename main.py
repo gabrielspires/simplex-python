@@ -19,6 +19,7 @@ from fractions  import Fraction
 from copy       import deepcopy
 import numpy    as np
 from simplex import Simplex
+import utils
 from utils import getEntry
 
 
@@ -171,7 +172,7 @@ simplex = Simplex()
 
 def main():
     inputFile = open(argv[1])
-    outputFile = open(argv[2], "w")
+    conclusaoFile = open(argv[2], "w")
     
     # Monta a PL em FPI
     FPIMatrix, numVariables, numRestrictions = ReadInput(inputFile)

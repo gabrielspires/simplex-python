@@ -6,6 +6,9 @@ pivotingFile = open("pivoting.txt", "a")
 conclusaoFile = open("conclusao.txt", "w")
 
 
+def setOutputFile(out):
+    conclusaoFile = out
+
 # resgata toda a entrada do arquivo de teste
 def getEntry():
     file = open(argv[1], 'r')
@@ -39,7 +42,7 @@ def printConclusao(flag, certificate, optimalValue=None, solution=None):
         print()
     if flag == 2:
         print("Status: otimo")
-        print("Objetivo:", optimalValue)
+        print("Objetivo:", float(optimalValue))
         S = np.squeeze(np.asarray(solution))
         print("Solucao:")
         for x in S:
