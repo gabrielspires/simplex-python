@@ -21,6 +21,7 @@ import numpy    as np
 from matrix import Matrix
 from simplex import Simplex
 
+
 def printa_cOiSaS(FPIMatrix):
     numRows, numColumns = FPIMatrix.shape
     numColumns -= 1
@@ -177,13 +178,10 @@ def main():
     # Monta o Tableau usando a PL em FPI
     tableau = AssembleTableau(FPIMatrix, basis)
 
-    # simplex = Simplex()
-    # simplex.init(tableau, numSlackVar)
+    # Chamo o simplex
+    simplex = Simplex()
+    simplex.init(tableau, numSlackVar)
 
-    matrix = Matrix(tableau, numSlackVar)
-
-    # printa_cOiSaS(tableau)
-    # print(tableau)
 
 if __name__ == '__main__':
     main()
