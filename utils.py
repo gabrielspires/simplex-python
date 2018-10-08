@@ -7,6 +7,7 @@ conclusaoFile = open("conclusao.txt", "w")
 
 
 def setOutputFile(out):
+    global conclusaoFile
     conclusaoFile = out
 
 # resgata toda a entrada do arquivo de teste
@@ -27,6 +28,14 @@ def printPivoting(matrix):
 # imprime a conclusão no arquivo conclusao.txt
 def printConclusao(flag, certificate, optimalValue=None, solution=None):
     if flag == 0:
+        conclusaoFile.write("Status: inviavel\n")
+        conclusaoFile.write("Certificado:\n")
+        C = np.squeeze(np.asarray(certificate))
+        for x in C:
+            conclusaoFile.write(str(float(x)))
+        conclusaoFile.write("\n")
+
+        # Printa na tela
         print("Status: inviavel")
         print("Certificado:")
         C = np.squeeze(np.asarray(certificate))
@@ -34,13 +43,43 @@ def printConclusao(flag, certificate, optimalValue=None, solution=None):
             print(float(x), end=" ")
         print()
     if flag == 1:
-        print("Status: ilimitada")
+        conclusaoFile.write("Status: ilimitado\n")
+
+        conclusaoFile.write("Certificado:\n")
+        C = np.squeeze(np.asarray(certificate))
+        for x in C:
+            conclusaoFile.write(str(float(x)))
+            conclusaoFile.write(" ")
+        conclusaoFile.write("\n")
+
+        # Printa na tela
+        print("Status: ilimitado")
         print("Certificado:")
         C = np.squeeze(np.asarray(certificate))
         for x in C:
             print(float(x), end=" ")
         print()
     if flag == 2:
+        conclusaoFile.write("Status: otimo\n")
+
+        conclusaoFile.write("Objetivo: ")
+        conclusaoFile.write(str(float(optimalValue)))
+
+        S = np.squeeze(np.asarray(solution))
+        conclusaoFile.write("\nSolucao:\n")
+        for x in S:
+            conclusaoFile.write(str(float(x)))
+            conclusaoFile.write(" ")
+        conclusaoFile.write('\n')
+
+        conclusaoFile.write("Certificado:\n")
+        C = np.squeeze(np.asarray(certificate))
+        for x in C:
+            conclusaoFile.write(str(float(x)))
+            conclusaoFile.write(" ")
+        conclusaoFile.write('\n')
+
+        # Printa na tela
         print("Status: otimo")
         print("Objetivo:", float(optimalValue))
         S = np.squeeze(np.asarray(solution))
@@ -55,13 +94,13 @@ def printConclusao(flag, certificate, optimalValue=None, solution=None):
         print()
 
 
-    if 0 <= flag <= 2:
-        conclusaoFile.write(str(flag) + '\n')
-    if flag == 2 and solution is not None:
-        printMatrixC(solution)
-    if flag == 2 and optimalValue is not None:
-        conclusaoFile.write(np.format_float_positional(float(optimalValue), precision=5) + '\n')
-    printMatrixC(certificate)
+    # if 0 <= flag <= 2:
+    #     conclusaoFile.write(str(flag) + '\n')
+    # if flag == 2 and solution is not None:
+    #     printMatrixC(solution)
+    # if flag == 2 and optimalValue is not None:
+    #     conclusaoFile.write(np.format_float_positional(float(optimalValue), precision=5) + '\n')
+    # printMatrixC(certificate)
 
     # fecha os dois arquivos usados na execução
     pivotingFile.close()

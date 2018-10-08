@@ -20,7 +20,7 @@ from copy       import deepcopy
 import numpy    as np
 from simplex import Simplex
 import utils
-from utils import getEntry
+from utils import setOutputFile
 
 
 def printa_cOiSaS(FPIMatrix):
@@ -172,8 +172,8 @@ simplex = Simplex()
 
 def main():
     inputFile = open(argv[1])
-    conclusaoFile = open(argv[2], "w")
-    
+    outputFile = open(argv[2], "w")
+    setOutputFile(outputFile)
     # Monta a PL em FPI
     FPIMatrix, numVariables, numRestrictions = ReadInput(inputFile)
 

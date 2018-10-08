@@ -1,4 +1,9 @@
-Utilizei Python3 nesse trabalho.
+Utilizei Python3 com numpy nesse trabalho.
 Para rodar o programa utilize o comando abaixo
 
     python3 main.py entrada.txt saida.txt
+
+Caso nao consiga rodar, talvez falte instalar ou atualizar o numpy/python3, então
+rode o comando:
+
+	make instalar_dependencias
