@@ -177,10 +177,10 @@ def main():
     
     # Monta o Tableau usando a PL em FPI
     tableau = AssembleTableau(FPIMatrix, basis)
-
+    printa_cOiSaS(tableau)
     # Chamo o simplex
-    simplex = Simplex()
-    simplex.init(tableau, numSlackVar)
+    # simplex = Simplex()
+    # simplex.init(tableau, numSlackVar)
 
 
 if __name__ == '__main__':
